@@ -76,9 +76,8 @@ I proceeded by downloading a Debian Linux server, installing the Wazuh Manager. 
 
 ### Telemetry Collection
 
-Now, I've configured Sysmon telemetry to be collected by the Agent and forwarded to the Wazuh Manager, and created a custom detection rule looking for Mimikatz activity. I've added Sysmon logs to the Windows Wazuh Agent, and Sysmon logs are now ingested into our SIEM!
-
-We will be using Mimikatz, so the firewall will need to be disabled. I continue preparation of the the telemetry phase by deploying the Wazuh Agent onto the Sysmon machine, and the .SVC has started successfully! I Opened ports 1514/1515 for the Wazuh Manager VM to communicate with the Agent and restarted service. Upon checking the web application, our Agent is registered in Wazuh.
+#### System Integration
+To enhance endpoint visibility, Sysmon telemetry is configured to be collected by the Wazuh Agent and forwarded to the Wazuh Manager. Sysmon event logs are successfully ingested into the SIEM, providing the detailed process, network, and system activity needed for detection engineering.
 
 <p align="center">
   <img src="images/image14.png"/>
@@ -86,11 +85,17 @@ We will be using Mimikatz, so the firewall will need to be disabled. I continue 
   <em>jist of picture</em>
 </p>
 
+#### Disabling Endpoint Firewall
+Because Mimikatz is used to simulate credential-dumping activity, Windows Defender Firewall needs disabled to prevent the tool from being blocked during testing.
+
 <p align="center">
   <img src="images/image21.png"/>
   <br/>
   <em>jist of picture</em>
 </p>
+
+#### Wazuh Agent Deployment
+To complete the telemetry pipeline, the Wazuh Agent is deployed to the Windows endpoint hosting Sysmon. After confirming the agent service is running, I opened ports 1514 and 1515 to allow communication with the Wazuh Manager. Once the service has been restarted, the endpoint successfully registers with Wazuh, confirming telemetry is being forwarded to the SIEM.
 
 <p align="center">
   <img src="images/image2.png"/>
@@ -100,7 +105,8 @@ We will be using Mimikatz, so the firewall will need to be disabled. I continue 
 
 ### Detection Engineering
 
-Now that the endpoint telemetry has been established, I will move onto the detection section. On our Wazuh Agent, we can now run Mimikatz. Wazuh does not currently detect our malicious activity on our endpoint, and we must now make our own custom rules to adjust our security posture. I altered the configuration file to capture all logs now. After that, I will create a new index pattern aggregated by the time field “timestamp”. The logs for Mimikatz are now being captured under the new index.
+#### Transition to Detection
+With endpoint telemetry successfully flowing into Wazuh, the next phase is building custom detections. To generate relevant security events, Mimikatz is executed on the monitored endpoint, simulating credential-dumping activity that should be identified by the SIEM.
 
 <p align="center">
   <img src="images/image32.png"/>
@@ -108,13 +114,8 @@ Now that the endpoint telemetry has been established, I will move onto the detec
   <em>jist of picture</em>
 </p>
 
-<p align="center">
-  <img src="images/image25.png"/>
-  <br/>
-  <em>jist of picture</em>
-</p>
-
-I created a simple rule to detect Mimikatz usage. This rule effectively detects standard Mimikatz usage in a lab environment by identifying the executable name through Sysmon. But, in a SOC environment, stronger detections would rely on behavioral indicators since filenames can be changed to bypass detection. And now the rule has triggered the generation of an alert.
+#### Need for Custom Rules
+By default, Wazuh does not generate an alert for this simulated attack. To improve the security posture, I created a simple rule to detect Mimikatz usage. This rule effectively detects standard Mimikatz usage in a lab environment by identifying the executable name through Sysmon. But, in a SOC environment, stronger detections would rely on behavioral indicators since filenames can be changed to bypass detection. And now the rule has triggered the generation of an alert.
 
 <p align="center">
   <img src="images/image6.png"/>
@@ -122,8 +123,11 @@ I created a simple rule to detect Mimikatz usage. This rule effectively detects 
   <em>jist of picture</em>
 </p>
 
+#### Capturing the Required Telemetry
+To ensure the necessary events are available for detection development, the Wazuh configuration is updated to collect all relevant logs. A new index pattern is then created using the timestamp field, allowing the captured Mimikatz telemetry to be searched, visualized, and analyzed within the Wazuh dashboard.
+
 <p align="center">
-  <img src="images/image11.png"/>
+  <img src="images/image25.png"/>
   <br/>
   <em>jist of picture</em>
 </p>
@@ -158,11 +162,12 @@ Here is the final workflow, and email sent.
   <em>jist of picture</em>
 </p>
 
-### Performance Metrics
+## Performance Metrics
 
->The automated enrichment and alerting workflow completed in approximately 3.1 seconds, including SHA256 extraction, VirusTotal enrichment, TheHive alert creation, and analyst email notification. 
+The automated enrichment and alerting workflow completed in approximately 3.1 seconds, including SHA256 extraction, VirusTotal enrichment, TheHive alert creation, and analyst email notification. 
 
-While this timing reflects a controlled lab environment, it demonstrates how security automation reduces the time between detection and analyst awareness. By automatically enriching alerts, creating investigation cases, and sending notifications, the workflow provides analysts with actionable context almost immediately, enabling faster triage and supporting a lower Mean Time to Respond (MTTR).
+>While this timing reflects a controlled lab environment, it demonstrates how security automation reduces the time between detection and analyst awareness. By automatically enriching alerts, creating investigation cases, and sending notifications, the workflow provides analysts with actionable context almost immediately, enabling faster triage and supporting a lower Mean Time to Respond (MTTR).
+
 
 | Event | Timestamp | Elapsed |
 |-------|-----------|---------|
