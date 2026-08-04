@@ -52,26 +52,31 @@ Modern Security Operations Centers (SOCs) rely on both detection and automation 
 
 ### Environment Setup
 
-I started this lab by downloading Sysmon & its Olaf configuration onto a Windows VM. I will have 3 total machines running in my local network: 1. The Windows VM that will be configured with a Wazuh Agent that transfers Sysmon logs to the Wazuh Manager, 2. The Wazuh Manager Instance running in a Linux VM, and 3. An instance of TheHive running also on a Linux VM.
-
-I proceeded by downloading a Debian Linux server, installing the Wazuh Manager. I downloaded an additional Debian Linux server, and installed TheHive and its dependencies. I configured Cassandra and Elasticsearch to communicate locally, and, after enabling port 9000 on the TheHive VM, the service web application is reachable.
+#### Windows Endpoint Deployment
+The lab environment begins with the deployment of a Windows virtual machine configured as the target endpoint. Sysmon is installed to generate detailed endpoint telemetry, providing the process creation, network, and system events required for security monitoring and detection.
 
 <p align="center">
   <img src="images/image29.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Endpoint Telemetry Setup: Confirming Sysmon Service Status on Windows VM</em>
 </p>
+
+#### Wazuh Manager Deployment
+A Debian Linux virtual machine is provisioned to host the Wazuh Manager. After installation and initial configuration, the manager serves as the central SIEM platform, receiving and analyzing telemetry collected from the monitored endpoint.
 
 <p align="center">
   <img src="images/image18.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Wazuh Manager Setup: Verifying SIEM Installation and Dashboard Connectivity</em>
 </p>
+
+#### TheHive Deployment
+A second Debian Linux virtual machine is deployed to host TheHive. After installing TheHive and its dependencies, Cassandra and Elasticsearch are configured for local communication. Port 9000 is then opened, allowing successful access to the TheHive web interface and completing the incident management component of the lab.
 
 <p align="center">
   <img src="images/image23.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>TheHive Setup: Verifying Incident Response Platform Installation and Dashboard Connectivity</em>
 </p>
 
 ### Telemetry Collection
@@ -82,7 +87,7 @@ To enhance endpoint visibility, Sysmon telemetry is configured to be collected b
 <p align="center">
   <img src="images/image14.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Sysmon Telemetry Integration: Confirming Endpoint Events Are Ingested into Wazuh SIEM</em>
 </p>
 
 #### Disabling Endpoint Firewall
@@ -91,7 +96,7 @@ Because Mimikatz is used to simulate credential-dumping activity, Windows Defend
 <p align="center">
   <img src="images/image21.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Security Control Adjustment: Temporarily Disabling Endpoint Protection for Detection Testing</em>
 </p>
 
 #### Wazuh Agent Deployment
@@ -100,7 +105,7 @@ To complete the telemetry pipeline, the Wazuh Agent is deployed to the Windows e
 <p align="center">
   <img src="images/image2.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Wazuh Agent Integration: Confirming Endpoint Communication with the Wazuh Manager</em>
 </p>
 
 ### Detection Engineering
@@ -111,7 +116,7 @@ With endpoint telemetry successfully flowing into Wazuh, the next phase is build
 <p align="center">
   <img src="images/image32.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Adversary Simulation: Executing Credential Access Techniques on the Windows Host</em>
 </p>
 
 #### Need for Custom Rules
@@ -120,7 +125,7 @@ By default, Wazuh does not generate an alert for this simulated attack. To impro
 <p align="center">
   <img src="images/image6.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Wazuh Rule Engineering: Developing a Custom Detection for Malicious Binary Execution</em>
 </p>
 
 #### Capturing the Required Telemetry
@@ -129,37 +134,33 @@ To ensure the necessary events are available for detection development, the Wazu
 <p align="center">
   <img src="images/image25.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>SIEM Alert Generation: Confirming Custom Rule Detection of Mimikatz Execution</em>
 </p>
 
 ### SOAR Automation
 
-The next step will be to tie everything in with an automated workflow. I am using Shuffler.io to create a new workflow for this. I’ve pointed Wazuh toward my Shuffler integration using the hook URI, and the workflow is able to receive the alert.
-
-Here is the workflow: The webhook will use its URI to receive alerts generated from Sysmon via our Wazuh Agent, sent to our Wazuh Manager and finally to our Shuffler webhook. Next, the hash is taken, and regex is performed to pull that SHA256, which is sent to the VirusTotal API, and given a hash assessment. The information is passed to TheHive and an alert is created!
-
-I realized I made all of my machines communicate locally and Shuffle cannot trace my Hive IP, so I made a temporary tunnel via CloudFlair. Okay, now the alert is generated in TheHive! Finally, we will send an email to our analyst to inspect the alert.
-
-Here is the final workflow, and email sent.
+The next step will be to tie everything in with an automated incident response process, a SOAR workflow is created in Shuffle. Wazuh is configured to forward alerts to the Shuffle webhook, where the incoming event is parsed and the SHA256 hash is extracted using regular expressions (REGEX). The hash is then submitted to the VirusTotal API for threat intelligence enrichment before the enriched alert is forwarded to TheHive for case creation. Because TheHive was hosted on an isolated private network, a temporary Cloudflare Tunnel was configured to enable secure communication between Shuffle and TheHive.
 
 <p align="center">
   <img src="images/image1.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>SOAR Automation Pipeline: Integrating Wazuh, VirusTotal, and TheHive for Alert Response</em>
 </p>
 
 ### Validation & Results
 
-<p align="center">
-  <img src="images/image15.png"/>
-  <br/>
-  <em>jist of picture</em>
-</p>
+The completed workflow successfully automates the end-to-end response process. A Mimikatz detection generated by Sysmon is forwarded through Wazuh to Shuffle, enriched with VirusTotal intelligence, and automatically creates an alert in TheHive. The alert is mapped to the MITRE ATT&CK T1003 – OS Credential Dumping technique, and an email notification is sent to the security analyst, demonstrating an automated detection and response pipeline from initial telemetry to analyst notification.
 
 <p align="center">
   <img src="images/image17.png"/>
   <br/>
-  <em>jist of picture</em>
+  <em>Automated Case Creation: Forwarding Enriched Alerts into TheHive</em>
+</p>
+
+<p align="center">
+  <img src="images/image15.png"/>
+  <br/>
+  <em>Incident Alerting: Confirming Email Delivery After Automated Detection</em>
 </p>
 
 ## Performance Metrics
